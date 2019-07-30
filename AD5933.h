@@ -1,5 +1,7 @@
 #pragma once
 
+#define AD5933_DEBUG 0
+
 #include "I2CProtocol.h"
 
 class AD5933
@@ -50,9 +52,9 @@ private:
 	int mainClock = 16000000;
 	uint16_t controlRegister = 0xA000;
 
-	const uint8_t address = 0xD;
-	const uint8_t cmdBlockRead = 0b10100000;
-	const uint8_t cmdBlockWrite = 0b10100001;
+	const uint8_t address = 0x0D;
+	const uint8_t cmdBlockRead = 0b10100001;
+	const uint8_t cmdBlockWrite = 0b10100000;
 	const uint8_t cmdSetPointer = 0b10110000;
 	
 public:
@@ -111,6 +113,10 @@ public:
 		uint32_t code = value;
 		code &= 0xFFFFFF;
 
+#if AD5933_DEBUG
+		Serial.printf("Set Start Frequency %x\n", code);
+#endif
+
 		SetPointerAddress(0x82);
 		uint8_t data[] = { code >> 16, code >> 8, code };
 		BlockWrite(data, 3);
@@ -121,6 +127,10 @@ public:
 		uint32_t code = value;
 		code &= 0xFFFFFF;
 
+#if AD5933_DEBUG
+		Serial.printf("Set Frequency Increment %x\n", code);
+#endif
+
 		SetPointerAddress(0x85);
 		uint8_t data[] = { code >> 16, code >> 8, code };
 		BlockWrite(data, 3);
@@ -129,6 +139,10 @@ public:
 	{
 		if (count > 511) count = 511;
 		count &= 0b111111111;
+
+#if AD5933_DEBUG
+		Serial.printf("Set Increment Count %x\n", count);
+#endif
 
 		SetPointerAddress(0x88);
 		uint8_t data[] = { count >> 8, count };
@@ -176,42 +190,86 @@ public:
 	{
 		return ReadRegister(0x8F);
 	}
-	uint16_t GetReal()
+	int16_t GetReal()
 	{
 		uint8_t buf[2] = { 0 };
 		SetPointerAddress(0x94);
 		BlockRead(buf, 2);
-		uint16_t value = buf[1];
+		int16_t value = buf[1];
 		value |= (buf[0] << 8);
 		return value;
 	}
-	uint16_t GetImaginary()
+	int16_t GetImaginary()
 	{
 		uint8_t buf[2] = { 0 };
 		SetPointerAddress(0x96);
 		BlockRead(buf, 2);
-		uint16_t value = buf[1];
+		int16_t value = buf[1];
 		value |= (buf[0] << 8);
 		return value;
 	}
-	uint16_t GetTemperature()
+	int16_t GetTemperature()
 	{
 		uint8_t buf[2] = { 0 };
 		SetPointerAddress(0x92);
+		BlockRead(buf, 2);
+		int16_t value = buf[1];
+		value |= (buf[0] << 8);
+		return value;
+	}
+	uint16_t GetWorkMode()
+	{
+		uint8_t buf[2] = { 0 };
+		SetPointerAddress(0x80);
 		BlockRead(buf, 2);
 		uint16_t value = buf[1];
 		value |= (buf[0] << 8);
 		return value;
 	}
-	void GetReadAndImaginary(uint16_t& real, uint16_t& imaginary)
+	uint32_t GetStartFrequency()
+	{
+		uint8_t buf[3] = { 0 };
+		SetPointerAddress(0x82);
+		BlockRead(buf, 3); 
+		uint32_t value = buf[0];
+		value <<= 8;
+		value |= buf[1];
+		value <<= 8;
+		value |= buf[2]; 
+		return value;
+	}	
+	uint32_t GetFrequencyIncrement()
+	{
+		uint8_t buf[3] = { 0 };
+		SetPointerAddress(0x85);
+		BlockRead(buf, 3);
+		uint32_t value = buf[0];
+		value <<= 8;
+		value |= buf[1];
+		value <<= 8;
+		value |= buf[2];
+		return value;
+	}	
+	uint32_t GetIncrementCount()
+	{
+		uint8_t buf[2] = { 0 };
+		SetPointerAddress(0x88);
+		BlockRead(buf, 2);
+		uint32_t value = buf[0];
+		value <<= 8;
+		value |= buf[1]; 
+		return value;
+	}
+
+	void GetReadAndImaginary(int16_t* buffer)
 	{
 		uint8_t buf[4] = { 0 };
 		SetPointerAddress(0x94);
 		BlockRead(buf, 4);
-		real = buf[1];
-		real |= (buf[0] << 8);
-		imaginary = buf[3];
-		imaginary |= (buf[2] << 8);
+		buffer[0] = buf[1];
+		buffer[0] |= (buf[0] << 8);
+		buffer[1] = buf[3];
+		buffer[1] |= (buf[2] << 8);
 	}
 
 	void Reset()
