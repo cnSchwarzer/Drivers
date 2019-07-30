@@ -34,6 +34,16 @@ private:
 	}
 
 public:
+	enum TouchScreenMode
+	{
+		TouchScreenMode_Disabled = 0,
+		TouchScreenMode_ReturnCoord = 1,
+		TouchScreenMode_ReturnHotspot = 2,
+		TouchScreenMode_ReturnNothing = 3,
+		TouchScreenMode_Advanced = 4,
+		TouchScreenMode_5Key = 5
+	};
+
 	UsartGpu()
 	{
 		sprintfBuffer = new char[512];
@@ -64,6 +74,10 @@ public:
 	{ 
 		SEND("BPIC(%d,%d,%d,%d,%d);", backId, x, y, pictureId, hide);
 	}
+	void Button(int hotspotId, int x1, int y1, int x2, int y2, int type, int ret)
+	{
+		SEND("BTN(%d,%d,%d,%d,%d,%d,%d);", hotspotId, x1, y1, x2, y2, type, ret);
+	}
 	void ClearScreen(int colorCode = 0)
 	{
 		SEND("CLS(%d);", colorCode);
@@ -84,24 +98,13 @@ public:
 	{
 		SEND("S%d;", value);
 	}
-	void DisplayParagraph(int size, int x1, int y1, int x2, int lineSpacing, const char* str, int colorCode)
-	{ 
-		SEND("BS%d(%d,%d,%d,%d,'%s',%d);", size, x1, y1, x2, lineSpacing, str, colorCode);
-	}
-	void DisplayString(int size, int x, int y, const char* str, int colorCode, int limitx = -1)
-	{
-		if (limitx == -1)
-		{
-			SEND("DS%d(%d,%d,'%s',%d);", size, x, y, str, colorCode);
-		}
-		else
-		{
-			SEND("DS%d(%d,%d,'%s',%d,%d);", size, x, y, str, colorCode, limitx);
-		}
-	}
 	void Icon(int x, int y, int pictureId, int xn, int yn, int id)
 	{
 		SEND("ICON(%d,%d,%d,%d,%d,%d);", x, y, pictureId, xn, yn, id);
+	}
+	void InputBufferDisplay(int size, int x, int y, int limitx, int lengthMax, int type, int colorCode, int lengthNeeded)
+	{
+		SEND("TSIN(%d,%d,%d,%d,%d,%d,%d,%d);", size, x, y, limitx, lengthMax, type, colorCode, lengthNeeded);
 	}
 	void Label(int size, int x1, int y1, int x2, const char* str, int colorCode, int align)
 	{ 
@@ -126,6 +129,10 @@ public:
 	void MenuDefineItem(int idx, int iconid, const char* str)
 	{
 		SEND("MDF(%d,%d,'%s');", idx, iconid, str);
+	} 
+	void Paragraph(int size, int x1, int y1, int x2, int lineSpacing, const char* str, int colorCode)
+	{
+		SEND("BS%d(%d,%d,%d,%d,'%s',%d);", size, x1, y1, x2, lineSpacing, str, colorCode);
 	}
 	void PaintSpot(int x, int y, int colorCode)
 	{
@@ -186,16 +193,46 @@ public:
 			SEND("PS%d(%d,%d,%d,'%s',%d,%d);", size, backId, x, y, str, colorCode, limitx);
 		}
 	}
+	void PictureButton(int hotspotId, int x1, int y1, int iconIdUp, int iconIdDown, int ret)
+	{
+		SEND("BICN(%d,%d,%d,%d,%d,%d);", hotspotId, x1, y1, iconIdUp, iconIdDown, ret);
+	}
+	void PictureButtonSetup(int pictureId, int xn, int yn)
+	{
+		SEND("TICN(%d,%d,%d);", pictureId, xn, yn);
+	}
 	void SetColorCode(int colorCode, uint16_t color)
 	{
 		SEND("SCC(%d,%d);", colorCode, color);
+	}
+	void String(int size, int x, int y, const char* str, int colorCode, int limitx = -1)
+	{
+		if (limitx == -1)
+		{
+			SEND("DS%d(%d,%d,'%s',%d);", size, x, y, str, colorCode);
+		}
+		else
+		{
+			SEND("DS%d(%d,%d,'%s',%d,%d);", size, x, y, str, colorCode, limitx);
+		}
 	}
 	void TouchScreenCalibration(int width, int height)
 	{
 		SEND("TPST(%d,%d);", width, height);
 	}
 	void TouchScreenMode(int mode, int default5key)
-	{ 
+	{
 		SEND("TPN(%d,%d);", mode, default5key);
+	}
+	void TouchScreenPencil(bool open, int colorCode)
+	{
+		if (open)
+		{
+			SEND("TPOW(%d);", colorCode);
+		}
+		else
+		{ 
+			SEND("TPOW(255)");
+		}
 	}
 };
